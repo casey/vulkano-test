@@ -45,6 +45,8 @@ use vulkano::device::Device;
 use vulkano::framebuffer::Framebuffer;
 use vulkano::framebuffer::Subpass;
 use vulkano::instance::Instance;
+use vulkano::instance::ApplicationInfo;
+use vulkano::instance::Version;
 use vulkano::pipeline::GraphicsPipeline;
 use vulkano::pipeline::viewport::Viewport;
 use vulkano::swapchain;
@@ -59,6 +61,8 @@ use vulkano::sync::GpuFuture;
 use std::sync::Arc;
 use std::mem;
 
+use vulkano::instance::PhysicalDevice;
+
 fn main() {
     // The first step of any vulkan program is to create an instance.
     let instance = {
@@ -69,9 +73,30 @@ fn main() {
         // required to draw to a window.
         let extensions = vulkano_win::required_extensions();
 
+        eprintln!("vulkano_win required extensions: {:?}", extensions);
+
+        let version = Version {
+          major: 0,
+          minor: 0,
+          patch: 0,
+        };
+
+        let app_info = ApplicationInfo {
+          application_name:    Some("blaster".into()),
+          application_version: Some(version),
+          engine_name:         Some("x".into()),
+          engine_version:      Some(version),
+        };
+
+        eprintln!("application info: {:?}", app_info);
+
         // Now creating the instance.
-        Instance::new(None, &extensions, None).expect("failed to create Vulkan instance")
+        Instance::new(Some(&app_info), &extensions, None).expect("failed to create Vulkan instance")
     };
+
+    for physical_device in PhysicalDevice::enumerate(&instance) {
+        println!("Available device: {}", physical_device.name());
+    }
 
     // We then choose which physical device to use.
     //
