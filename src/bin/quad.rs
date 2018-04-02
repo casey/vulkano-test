@@ -220,9 +220,10 @@ fn main() {
         impl_vertex!(Vertex, position);
 
         CpuAccessibleBuffer::from_iter(device.clone(), BufferUsage::all(), [
-            Vertex { position: [-0.5, -0.25] },
-            Vertex { position: [0.0, 0.5] },
-            Vertex { position: [0.25, -0.1] }
+          Vertex { position: [-0.5, -0.5] },
+          Vertex { position: [ 0.5, -0.5] },
+          Vertex { position: [-0.5,  0.5] },
+          Vertex { position: [ 0.5,  0.5] },
         ].iter().cloned()).expect("failed to create buffer")
     };
 
@@ -311,7 +312,7 @@ void main() {
         // the entry point.
         .vertex_shader(vs.main_entry_point(), ())
         // The content of the vertex buffer describes a list of triangles.
-        .triangle_list()
+        .triangle_strip()
         // Use a resizable viewport set to draw over the entire window
         .viewports_dynamic_scissors_irrelevant(1)
         // See `vertex_shader`.
