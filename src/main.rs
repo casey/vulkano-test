@@ -81,7 +81,7 @@ fn screenshot_name() -> String {
     .output()
     .unwrap()
     .stdout;
-  
+
   format!(
     "/Users/rodarmor/Dropbox/screenshots/{}.{}.png",
     us_since_epoch,
@@ -560,7 +560,7 @@ void main() {
               wrote_screenshot = true;
           }
         }
-        
+
           /*
         if current_frame_number == 1 {
 
