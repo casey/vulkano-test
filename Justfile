@@ -1,4 +1,7 @@
-default: run
+default: check
+
+check:
+	cargo check
 
 run:
 	cargo run

@@ -35,10 +35,13 @@ extern crate winit;
 // the two.
 extern crate vulkano_win;
 
+extern crate image;
+
+use image::{ImageBuffer, Rgba};
+
 use vulkano_win::VkSurfaceBuild;
 
-use vulkano::buffer::BufferUsage;
-use vulkano::buffer::CpuAccessibleBuffer;
+use vulkano::buffer::{BufferUsage, CpuAccessibleBuffer};
 use vulkano::command_buffer::AutoCommandBufferBuilder;
 use vulkano::command_buffer::DynamicState;
 use vulkano::device::Device;
@@ -58,10 +61,33 @@ use vulkano::swapchain::SwapchainCreationError;
 use vulkano::sync::now;
 use vulkano::sync::GpuFuture;
 
-use std::sync::Arc;
-use std::mem;
+use std::{mem, sync::Arc};
 
 use vulkano::instance::PhysicalDevice;
+
+use std::time::{SystemTime, UNIX_EPOCH};
+
+fn screenshot_name() -> String {
+  let start = SystemTime::now();
+  let since_the_epoch = start.duration_since(UNIX_EPOCH)
+      .expect("Time went backwards");
+
+  let us_since_epoch = since_the_epoch.as_secs() as u64 * 1_000_000
+    + since_the_epoch.subsec_nanos() as u64 / 1_000;
+
+  let git_revision = std::process::Command::new("git")
+    .arg("rev-parse")
+    .arg("HEAD")
+    .output()
+    .unwrap()
+    .stdout;
+  
+  format!(
+    "/Users/rodarmor/Dropbox/screenshots/{}.{}.png",
+    us_since_epoch,
+    String::from_utf8_lossy(&git_revision).trim()
+  )
+}
 
 fn main() {
     // The first step of any vulkan program is to create an instance.
@@ -331,6 +357,8 @@ void main() {
     // each image.
     let mut framebuffers: Option<Vec<Arc<vulkano::framebuffer::Framebuffer<_,_>>>> = None;
 
+    eprintln!("swapchain format: {:?}", swapchain.format());
+
     // Initialization is finally finished!
 
     // In some situations, the swapchain will become invalid by itself. This includes for example
@@ -352,7 +380,23 @@ void main() {
     // that, we store the submission of the previous frame here.
     let mut previous_frame_end = Box::new(now(device.clone())) as Box<GpuFuture>;
 
+    let screenshot_buffer = CpuAccessibleBuffer::from_iter(
+      device.clone(),
+      BufferUsage {
+        transfer_destination: true,
+        .. BufferUsage::none()
+      },
+      (0..(1024 * 768 * 4 * 4)).map(|_| 0u8),
+    ).unwrap();
+
+    let mut current_frame_number = 0;
+    let mut wrote_screenshot = false;
+
     loop {
+        current_frame_number += 1;
+
+        eprintln!("current frame number: {}", current_frame_number);
+
         // It is important to call this function from time to time, otherwise resources will keep
         // accumulating and you will eventually reach an out of memory error.
         // Calling this function polls various fences in order to determine what the GPU has
@@ -460,9 +504,37 @@ void main() {
             // Finish building the command buffer by calling `build`.
             .build().unwrap();
 
-        let future = previous_frame_end.join(acquire_future)
-            .then_execute(queue.clone(), command_buffer).unwrap()
+        // screenshot buffer is locked by the gpu
+        // no idea when it'll be done
+        // how to fix:
+        // - screenshot on frame n, export on frame n + 100000
+        // - create cpu buffer dynamically on first frame and whenever a screenshot is requested
+        //   create a new command buffer with the copy after the swapchain present
+        //   submit it to the queue
+        //   get a future representing when it will be done
+        //   start a new thread, move the future and buffer handles to this thread
+        //   block on thread, write screenshot once we're done
+        //   (can reuse threads and buffers later)
 
+        let future = previous_frame_end.join(acquire_future)
+            .then_execute(queue.clone(), command_buffer).unwrap();
+
+        let mut future: Box<GpuFuture> = Box::new(future);
+
+        if current_frame_number == 1 {
+          let screenshot_command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(
+            device.clone(),
+            queue.family()
+          ).unwrap()
+            .copy_image_to_buffer(images[image_num].clone(), screenshot_buffer.clone()) 
+            .unwrap()
+            .build().unwrap();
+
+          future = Box::new(future.then_execute(queue.clone(), screenshot_command_buffer).unwrap());
+        }
+
+
+        let future = future
             // The color output is now expected to contain our triangle. But in order to show it on
             // the screen, we have to *present* the image by calling `present`.
             //
@@ -470,7 +542,36 @@ void main() {
             // present command at the end of the queue. This means that it will only be presented once
             // the GPU has finished executing the command buffer that draws the triangle.
             .then_swapchain_present(queue.clone(), swapchain.clone(), image_num)
+
             .then_signal_fence_and_flush();
+
+        // .copy_image_to_buffer(images[image_num].clone(), screenshot_buffer.clone()) 
+        //   .unwrap()
+
+        if !wrote_screenshot {
+          if let Ok(screenshot_buffer_contents) = screenshot_buffer.read() {
+              println!("writing screenshot buffer");
+              let image = ImageBuffer::<Rgba<u8>, _>::from_raw(
+                1024 * 2,
+                768 * 2,
+                &screenshot_buffer_contents[..]
+              ).unwrap();
+              image.save(screenshot_name()).unwrap();
+              wrote_screenshot = true;
+          }
+        }
+        
+          /*
+        if current_frame_number == 1 {
+
+          let screenshot_future = future.then_execute(queue.clone(), screenshot_command_buffer);
+
+          std::thread::spawn(move || {
+            screenshot_future.wait();
+
+          });
+        }
+          */
 
         match future {
             Ok(future) => {
