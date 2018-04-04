@@ -248,7 +248,7 @@ void main() {
     gl_Position = vec4(position, 0.0, 1.0);
 }
 "]
-        struct Dummy;
+        struct _Dummy;
     }
 
     mod fs {
@@ -263,7 +263,7 @@ void main() {
     f_color = vec4(1.0, 0.0, 0.0, 1.0);
 }
 "]
-        struct Dummy;
+        struct _Dummy;
     }
 
     let vs = vs::Shader::load(device.clone()).expect("failed to create shader module");
