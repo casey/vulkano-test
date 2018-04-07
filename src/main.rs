@@ -45,6 +45,8 @@ use vulkano::instance::PhysicalDevice;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod shader;
+
 fn screenshot_name() -> String {
   let start = SystemTime::now();
   let since_the_epoch = start.duration_since(UNIX_EPOCH)
@@ -250,6 +252,7 @@ void main() {
 "]
         struct _Dummy;
     }
+
 
     mod fs {
         #[derive(VulkanoShader)]
