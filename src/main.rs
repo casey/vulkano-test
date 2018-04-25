@@ -485,7 +485,7 @@ fn main() {
 
         let mut future: Box<GpuFuture> = Box::new(future);
 
-        if current_frame_number == 1 {
+        if current_frame_number == 1 && false {
           let screenshot_command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(
             device.clone(),
             queue.family()
@@ -508,7 +508,7 @@ fn main() {
 
             .then_signal_fence_and_flush();
 
-        if !wrote_screenshot {
+        if !wrote_screenshot && false {
           if let Ok(screenshot_buffer_contents) = screenshot_buffer.read() {
               println!("writing screenshot buffer");
               let image = ImageBuffer::<Rgba<u8>, _>::from_raw(
