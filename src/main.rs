@@ -136,7 +136,7 @@ fn main() {
     // window and a cross-platform Vulkan surface that represents the surface of the window.
     let mut events_loop = winit::EventsLoop::new();
     let surface = winit::WindowBuilder::new().build_vk_surface(&events_loop, instance.clone()).unwrap();
-    
+
     // The next step is to choose which GPU queue will execute our draw commands.
     //
     // Devices can provide multiple queues to run commands in parallel (for example a draw queue
@@ -198,7 +198,7 @@ fn main() {
         // pass values that are allowed by the capabilities.
         let caps = surface.capabilities(physical)
                          .expect("failed to get surface capabilities");
-        
+
         dimensions = caps.current_extent.unwrap_or([1024, 768]);
 
         // We choose the dimensions of the swapchain to match the current extent of the surface.
@@ -252,6 +252,7 @@ void main() {
 "]
         struct _Dummy;
     }
+
 
 
     mod fs {
@@ -391,7 +392,7 @@ void main() {
             dimensions = surface.capabilities(physical)
                         .expect("failed to get surface capabilities")
                         .current_extent.unwrap();
-            
+
             let (new_swapchain, new_images) = match swapchain.recreate_with_dimension(dimensions) {
                 Ok(r) => r,
                 // This error tends to happen when the user is manually resizing the window.
@@ -508,7 +509,7 @@ void main() {
             device.clone(),
             queue.family()
           ).unwrap()
-            .copy_image_to_buffer(images[image_num].clone(), screenshot_buffer.clone()) 
+            .copy_image_to_buffer(images[image_num].clone(), screenshot_buffer.clone())
             .unwrap()
             .build().unwrap();
 
@@ -526,9 +527,6 @@ void main() {
             .then_swapchain_present(queue.clone(), swapchain.clone(), image_num)
 
             .then_signal_fence_and_flush();
-
-        // .copy_image_to_buffer(images[image_num].clone(), screenshot_buffer.clone()) 
-        //   .unwrap()
 
         if !wrote_screenshot {
           if let Ok(screenshot_buffer_contents) = screenshot_buffer.read() {
