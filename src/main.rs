@@ -241,33 +241,14 @@ fn main() {
     mod vs {
         #[derive(VulkanoShader)]
         #[ty = "vertex"]
-        #[src = "
-#version 450
-
-layout(location = 0) in vec2 position;
-
-void main() {
-    gl_Position = vec4(position, 0.0, 1.0);
-}
-"]
+        #[path = "shaders/vs.glsl"]
         struct _Dummy;
     }
-
-
 
     mod fs {
         #[derive(VulkanoShader)]
         #[ty = "fragment"]
-        #[src = "
-#version 450
-
-layout(location = 0) out vec4 f_color;
-
-void main() {
-    f_color = vec4(1.0, 0.0, 1.0, 1.0);
-}
-
-"]
+        #[path = "shaders/fs.glsl"]
         struct _Dummy;
     }
 
@@ -515,7 +496,6 @@ void main() {
 
           future = Box::new(future.then_execute(queue.clone(), screenshot_command_buffer).unwrap());
         }
-
 
         let future = future
             // The color output is now expected to contain our triangle. But in order to show it on
