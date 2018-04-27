@@ -1,0 +1,38 @@
+plan of attack:
+- find where the bytecode is
+  - need to make bytecode accessible
+    - store bytecode on the vulkano::pipeline::shader::ShaderModule
+- figure out how to compile a shader at runtime
+- try to replace loaded bytecode with new bytecode
+  - might not be accessible or mutable
+- maybe need to recreate the pipeline
+- deal with crashes
+
+trait Processor {
+  type Item;
+  fn process(&self, path: &Path) -> Option<Pipeline>;
+}
+
+mod main {
+  struct MyProcessor {
+  }
+
+  enum Resource {
+    VertexShader(ShaderModule),
+    FragmentShaser(ShaderModule),
+  }
+
+  impl Processor<Item=Resource> for MyProcessor {
+    fn process(&self, path: &Path) -> Option<Resource> {
+      if path.ends_with("v.glsl") {
+        // recompile and reload
+        Resource::VertexShader(blah),
+      } else if path.ends_with("some_model.3ddatstuff") {
+        None
+      }
+    }
+  }
+}
+
+HashMap<Regex, Processor>
+

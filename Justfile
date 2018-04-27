@@ -1,10 +1,17 @@
 default: check
 
+log='warn'
+
+bt='0'
+
 check:
 	cargo check
 
-run:
-	cargo run
+build:
+	cargo build
+
+run: build
+	RUST_BACKTRACE={{bt}} RUST_LOG={{log}} ./target/debug/x
 
 vulkano-docs:
 	open https://docs.rs/vulkano/0.9.0/vulkano/
