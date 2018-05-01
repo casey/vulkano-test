@@ -15,6 +15,9 @@ extern crate winit;
 mod shader;
 mod rsc;
 mod common;
+mod profiler;
+
+use profiler::Profiler;
 
 use image::{ImageBuffer, Rgba};
 
@@ -56,6 +59,8 @@ fn screenshot_name() -> String {
 
 fn main() {
   env_logger::init();
+
+  let mut profiler = Profiler::new();
 
   // The first step of any vulkan program is to create an instance.
   let instance = {
@@ -335,15 +340,16 @@ fn main() {
     (0..(1024 * 768 * 4 * 4)).map(|_| 0u8),
   ).unwrap();
 
-  let mut current_frame_number = 0;
   let mut wrote_screenshot = false;
 
   let watcher = rsc::Watcher::new("rsc", device.clone()).unwrap();
 
   loop {
-      trace!("rendering frame: {}", current_frame_number);
+      // trace!("fps: {}", profiler.fps());
+      //
+      let frame = profiler.frame();
 
-      current_frame_number += 1;
+      debug!("images in swapchain: {}", swapchain.num_images());
 
       // It is important to call this function from time to time, otherwise resources will keep
       // accumulating and you will eventually reach an out of memory error.
@@ -391,11 +397,8 @@ fn main() {
         // let elapsed = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         
         let uniform_data = shader::fs::ty::Data {
-          // time: (elapsed.as_secs() as f64 + elapsed.subsec_nanos() as f64 / 1_000_000_000.0) as f32,
-          time: current_frame_number as f32 / 1000.0,
+          time: 0.0,
         };
-
-        trace!("{}", uniform_data.time);
 
         uniform_buffer.next(uniform_data).unwrap()
       };
@@ -412,14 +415,13 @@ fn main() {
       //
       // This function can block if no image is available. The parameter is an optional timeout
       // after which the function call will return an error.
-      let (image_num, acquire_future) = match swapchain::acquire_next_image(swapchain.clone(),
-                                                                            None) {
-          Ok(r) => r,
-          Err(AcquireError::OutOfDate) => {
-              recreate_swapchain = true;
-              continue;
-          },
-          Err(err) => panic!("{:?}", err)
+      let (image_num, acquire_future) = match swapchain::acquire_next_image(swapchain.clone(), None) {
+        Ok(r) => r,
+        Err(AcquireError::OutOfDate) => {
+          recreate_swapchain = true;
+          continue;
+        },
+        Err(err) => panic!("{:?}", err)
       };
 
       // In order to draw, we have to build a *command buffer*. The command buffer object holds
@@ -487,7 +489,7 @@ fn main() {
 
       let mut future: Box<GpuFuture> = Box::new(future);
 
-      if current_frame_number == 1 && false {
+      if frame.first() && false {
         let screenshot_command_buffer = AutoCommandBufferBuilder::primary_one_time_submit(
           device.clone(),
           queue.family()
@@ -551,6 +553,7 @@ fn main() {
 
       if let Some(new_fs) = watcher.try_recv() {
         pipeline = create_pipeline(new_fs);
+        recreate_swapchain = true;
       }
 
       // Note that in more complex programs it is likely that one of `acquire_next_image`,
@@ -564,12 +567,17 @@ fn main() {
       // Handling the window events in order to close the program when the user wants to close
       // it.
       let mut done = false;
-      events_loop.poll_events(|ev| {
-          match ev {
-              winit::Event::WindowEvent { event: winit::WindowEvent::Closed, .. } => done = true,
-              _ => ()
+      let mut brk = false;
+      //while !brk {
+        events_loop.poll_events(|event| {
+          use winit::{Event, WindowEvent};
+          match event {
+            Event::WindowEvent { event: WindowEvent::Closed, .. } => {done = true; brk = true},
+            Event::WindowEvent { event: WindowEvent::KeyboardInput{..}, .. } => brk = true,
+            _ => ()
           }
-      });
+        });
+      //}
       if done { return; }
   }
 }

@@ -1,6 +1,6 @@
 default: check
 
-log='warn'
+log='debug'
 
 bt='0'
 
